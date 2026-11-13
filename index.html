@@ -1,0 +1,210 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bit Byte Technologies in Salem</title>
+    <link rel="icon" type="image/png" href="/assets/favicon.png" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet" />
+    <meta name="theme-color" content="#020b12" />
+    <meta
+      name="description"
+      content="Bit Byte Technologies is a web development company in Salem offering website development, web apps, SEO and digital marketing solutions for growing businesses."
+    />
+    <meta
+      name="keywords"
+      content="Web Development Company in Salem,Website Development Company in Salem, Digital Marketing Agency in Salem"
+    />
+    <meta name="robots" content="index, follow" />
+    <link rel="canonical" href="https://bitbytetech.org/" />
+    <script>
+      // Strip hashes immediately on page load and convert to clean paths (e.g., #contact -> /contact)
+      (function normalizeHashRoutes() {
+        function sanitize() {
+          var hash = window.location.hash;
+          var hashMap = {
+            '#hero': '/',
+            '#services': '/services',
+            '#about': '/about',
+            '#founder': '/about',
+            '#contact': '/contact'
+          };
+          if (hashMap[hash]) {
+            window.history.replaceState(null, '', hashMap[hash] + window.location.search);
+          } else if (hash && hash.length > 1 && !hash.startsWith('#/')) {
+            var section = hash.replace('#', '').replace(/\/+$/, '');
+            if (section === 'founder') section = 'about';
+            if (section === 'hero') section = '';
+            if (section === '' || section === 'about' || section === 'contact' || section === 'services' || section === 'careers') {
+              window.history.replaceState(null, '', '/' + section + window.location.search);
+            }
+          }
+          if (window.location.pathname.length > 1 && window.location.pathname.endsWith('/')) {
+            window.history.replaceState(null, '', window.location.pathname.replace(/\/+$/, '') + window.location.search);
+          }
+        }
+        sanitize();
+        window.addEventListener('hashchange', sanitize);
+      })();
+
+      // Route-specific SEO from BBT - SEO (3).xlsx, Sheet1.
+      // This runs in the document head so every SPA route receives its own
+      // title, description, keywords, canonical URL, and robots directive.
+      (function applyRouteSeo() {
+        var defaultDescription =
+          "Bit Byte Technologies is a web development company in Salem offering website development, web apps, SEO and digital marketing solutions for growing businesses.";
+        var defaultKeywords =
+          "Web Development Company in Salem,Website Development Company in Salem, Digital Marketing Agency in Salem";
+        var seoByPath = {
+          "/": ["Bit Byte Technologies in Salem", defaultDescription, defaultKeywords],
+          "/services/web-development": [
+            "Web Development in Salem",
+            "Bit Byte Technologies is a web development company in Salem offering custom websites, web applications, eCommerce and scalable digital solutions for businesses.",
+            "Web Development Company in Salem,Website Development Company in Salem, Web Development Services in Salem",
+          ],
+          "/services/web-development/custom-web-applications": [
+            "Custom Web Application Development in Salem",
+            "Build secure, scalable custom web applications in Salem with Bit Byte Technologies. We develop business portals, dashboards, SaaS platforms, APIs and workflow solutions.",
+            "Custom Web Application Development in Salem,Web Application Development Company in Salem, Custom Web Development Company in Salem",
+          ],
+          "/services/web-development/ecommerce-solutions": [
+            "Ecommerce Website Development in Salem",
+            "Bit Byte Technologies provides ecommerce development in Salem, building fast, secure and scalable online stores with payments, product catalogs, inventory and order management.",
+            "Ecommerce Development Company in Salem,Ecommerce Website Development in Salem, Ecommerce Website Development Company in Salem",
+          ],
+          "/services/web-development/web-portals-dashboards": [
+            "Web Portal Development Company in Salem",
+            "Bit Byte Technologies provides web portal development in Salem, building secure customer, employee, vendor and business portals with custom dashboards, role-based access and integrations.",
+            "Web Portal Development Company in Salem,Web Portal Development Services in Salem, Dashboard Development Company in Salem",
+          ],
+          "/services/personal-branding": [
+            "Personal Branding Services in Salem",
+            "Bit Byte Technologies provides personal branding services in Salem to help entrepreneurs, professionals and business leaders build authority, improve online visibility and grow their personal brand.",
+            "Personal Branding Services in Salem,Personal Branding Agency in Salem, Personal Branding Company in Salem",
+          ],
+          "/services/digital-marketing/ai-powered-digital-marketing-solutions": [
+            "AI Digital Marketing in Salem",
+            "Bit Byte Technologies provides AI-powered digital marketing services in Salem, combining AI, automation, SEO, AEO, GEO, content, advertising and analytics to generate measurable business growth.",
+            "Digital Marketing Agency in Salem,Digital Marketing Services in Salem, Digital Marketing Services in Salem",
+          ],
+          "/services/business-analytics/data-driven-business-analytics-solutions": [
+            "Business Analytics Company in Salem",
+            "Bit Byte Technologies provides business analytics services in Salem, helping businesses turn data into actionable insights through dashboards, KPIs, reporting, visualization and predictive analytics.",
+            "Business Analytics Company in Salem,Business Analytics Services in Salem, Business Intelligence Services in Salem",
+          ],
+          "/services/imagination-to-reality": [
+            "Software Product Development in Salem",
+            "Bit Byte Technologies helps businesses and founders turn ideas into software products in Salem, from product strategy and MVP development to custom software, testing, launch and ongoing improvement.",
+            "Software Product Development Company in Salem,Software Product Development Services in Salem, Custom Software Development Company in Salem",
+          ],
+          "/services/real-time-sales-data": [
+            "Sales Analytics Company in Salem",
+            "Bit Byte Technologies provides sales analytics solutions in Salem with real-time dashboards, sales KPIs, revenue reporting, product insights and data-driven sales performance analysis.",
+            "Sales Analytics Company in Salem,Real-Time Sales Analytics in Salem, Sales Dashboard Development in Salem",
+          ],
+          "/careers": [
+            "Bit Byte Technologies | Jobs & Careers in Salem",
+            "Explore career opportunities at Bit Byte Technologies in Salem. Find software development, web development, digital marketing, analytics and internship opportunities with our growing technology team.",
+            "Jobs in Salem at Bit Byte Technologies,IT Jobs in Salem, Software Developer Jobs in Salem",
+            true,
+          ],
+          "/careers/apply": [
+            "Bit Byte Technologies | Apply for IT Jobs in Salem",
+            "Apply for technology and IT opportunities at Bit Byte Technologies in Salem. Submit your resume and details for current job openings and future career opportunities.",
+            "Apply for IT Jobs in Salem,Apply for Jobs at Bit Byte Technologies, IT Job in Salem",
+          ],
+          "/privacy-policy": [
+            "Bit Byte Technologies | Privacy Policy",
+            "Read the Bit Byte Technologies Privacy Policy to understand how we collect, use, protect and manage personal information when you use our website and services.",
+            "Bit Byte Technologies Privacy Policy,Privacy Policy Bit Byte Technologies, Bit Byte Technologies Data Privacy",
+          ],
+          "/terms-and-conditions": [
+            "Bit Byte Technologies | Terms and Conditions",
+            "Read the Bit Byte Technologies Terms and Conditions governing use of our website, services, content, intellectual property and related online resources.",
+            "Bit Byte Technologies Terms and Conditions,Terms and Conditions Bit Byte Technologies, Bit Byte Technologies Terms of Use",
+          ],
+        };
+
+        var pathname = window.location.pathname.replace(/\/$/, "") || "/";
+        var seo = seoByPath[pathname];
+        if (!seo) return;
+
+        document.title = seo[0];
+        document.querySelector('meta[name="description"]').content = seo[1];
+        document.querySelector('meta[name="keywords"]').content = seo[2];
+        document.querySelector('meta[name="robots"]').content = seo[3]
+          ? "noindex, nofollow"
+          : "index, follow";
+        document.querySelector('link[rel="canonical"]').href =
+          "https://bitbytetech.org" + (pathname === "/" ? "/" : pathname);
+      })();
+    </script>
+    <noscript>
+      <link
+        rel="stylesheet"
+        href="/assets/vendor/fontawesome/css/all.min.css"
+      />
+    </noscript>
+    <link
+      rel="preload"
+      as="image"
+      href="/assets/optimized/hero-bg-poster.png"
+      type="image/png"
+      fetchpriority="high"
+    />
+    <link
+      rel="preload"
+      as="image"
+      href="/assets/optimized/planet-246.png"
+      imagesrcset="/assets/optimized/planet-160.png 160w, /assets/optimized/planet-240.png 240w, /assets/optimized/planet-246.png 246w"
+      imagesizes="246px"
+      fetchpriority="high"
+    />
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      window.gtag =
+        window.gtag ||
+        function gtag() {
+          window.dataLayer.push(arguments);
+        };
+      function gtag_report_conversion(url) {
+        var callback = function () {
+          if (typeof url != "undefined") {
+            window.location = url;
+          }
+        };
+        gtag("event", "conversion", {
+          send_to: "AW-18194250314/bO6KCN7Y7bgcEMr02OND",
+          event_callback: callback,
+        });
+        return false;
+      }
+    </script>
+  </head>
+  <body>
+    <!-- Google Tag Manager (noscript) -->
+    <noscript>
+      <iframe
+        src="https://www.googletagmanager.com/ns.html?id=GTM-MF6FFG6C"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe>
+    </noscript>
+    <!-- End Google Tag Manager (noscript) -->
+    <!-- Meta Pixel fallback for users with JavaScript disabled -->
+    <noscript>
+      <img
+        height="1"
+        width="1"
+        style="display: none"
+        src="https://www.facebook.com/tr?id=1533780781440843&ev=PageView&noscript=1"
+        alt="Meta Pixel tracking pixel"
+      />
+    </noscript>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>
