@@ -149,29 +149,69 @@ async function parseUploadedFile(fileName, fileType, fileData) {
     const docResult = await mammoth.default.extractRawText({ buffer });
     const text = docResult.value || "";
 
-    const qaPairs = text.split(/(?=Q:\s*|Question:\s*)/i);
-    let foundPairs = false;
+    // 4.1 Parse Canonical Answer groups (PART C, PART D, etc.)
+    const variationSections = text.split(/(?=\n[A-Z0-9][^\n]+—[^\n]+)/);
+    for (const sec of variationSections) {
+      const canonicalMatch = sec.match(/Canonical answer:\s*([^\n\r]+(?:\n[^\n\r]+)*)/i);
+      if (!canonicalMatch) continue;
+      const answer = canonicalMatch[1].trim();
 
-    qaPairs.forEach((block) => {
-      const match = block.match(/(?:Q|Question):\s*(.+?)(?:\r?\n)+(?:A|Answer):\s*([\s\S]+)/i);
-      if (match) {
-        const qClean = match[1].trim();
-        const aClean = match[2].trim();
-        if (qClean && aClean && qClean.toLowerCase() !== aClean.toLowerCase()) {
-          foundPairs = true;
+      const beforeCanonical = sec.slice(0, canonicalMatch.index);
+      const lines = beforeCanonical
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l.length > 3 && !l.startsWith("PART ") && !l.startsWith("The chatbot must") && !l.includes("—"));
+
+      for (const q of lines) {
+        if (q.length > 3 && q.toLowerCase() !== answer.toLowerCase()) {
           items.push({
-            question: qClean,
-            answer: aClean,
-            category: "Word Document",
+            question: q,
+            answer: answer,
+            category: "Verified Directory & Team",
           });
         }
       }
-    });
+    }
 
-    if (!foundPairs || items.length === 0) {
+    // 4.2 Parse Q1. ... A: ... or Q: ... A: ... (100 FAQs style)
+    const qaPattern = /(?:^|\n)\s*(?:Q\d*|Question\s*\d*)\s*[\.:]\s*(.+?)\s*(?:\r?\n)+\s*(?:A|Answer)\s*[\.:]\s*([\s\S]+?)(?=(?:\r?\n)\s*(?:Q\d*|Question\s*\d*)\s*[\.:]|PART|\Z)/gi;
+    let match;
+    while ((match = qaPattern.exec(text)) !== null) {
+      const q = match[1].trim();
+      const a = match[2].trim();
+      if (q && a && q.toLowerCase() !== a.toLowerCase()) {
+        items.push({
+          question: q,
+          answer: a,
+          category: fileName || "100 Business FAQs",
+        });
+      }
+    }
+
+    // 4.3 Standard Q/A block fallback if above didn't catch pairs
+    if (items.length === 0) {
+      const qaPairs = text.split(/(?=Q:\s*|Question:\s*)/i);
+      qaPairs.forEach((block) => {
+        const m = block.match(/(?:Q|Question):\s*(.+?)(?:\r?\n)+(?:A|Answer):\s*([\s\S]+)/i);
+        if (m) {
+          const qClean = m[1].trim();
+          const aClean = m[2].trim();
+          if (qClean && aClean && qClean.toLowerCase() !== aClean.toLowerCase()) {
+            items.push({
+              question: qClean,
+              answer: aClean,
+              category: "Word Document",
+            });
+          }
+        }
+      });
+    }
+
+    // 4.4 Paragraph fallback
+    if (items.length === 0) {
       const paragraphs = text.split(/(?:\r?\n\s*){2,}/).filter((p) => p.trim().length > 30);
       paragraphs.forEach((p, idx) => {
-        const lines = p.trim().split(/\r?\n/).filter(l => l.trim().length > 0);
+        const lines = p.trim().split(/\r?\n/).filter((l) => l.trim().length > 0);
         const firstLine = lines[0].replace(/^#+\s*/, "").trim();
         const body = lines.slice(1).join("\n").trim() || firstLine;
         items.push({

@@ -1,4 +1,4 @@
-import { findRelevantKnowledge, recordLearnedQA } from "./services/liveKnowledge.js";
+import { ensureMongoLoaded, findRelevantKnowledge, recordLearnedQA } from "./services/liveKnowledge.js";
 
 export const DEFAULT_OPENROUTER_MODEL = "openai/gpt-oss-20b";
 export const DEFAULT_MODEL = "openai/gpt-oss-20b";
@@ -100,6 +100,11 @@ export async function createChatReply(
 
   const modelOverride = typeof options === "string" ? options : options.model;
   const history = Array.isArray(options.history) ? options.history : [];
+
+  // Ensure latest dynamic knowledge is loaded from MongoDB
+  try {
+    await ensureMongoLoaded();
+  } catch {}
 
   // Step 1: Sub-2ms fast knowledge retrieval from the full website knowledge store
   const knowledge = findRelevantKnowledge(message);

@@ -731,6 +731,18 @@ export async function loadLearnedQAFromMongo(forceReload = false) {
 // Background startup load
 loadLearnedQAFromMongo().catch(() => {});
 
+let mongoLoadPromise = null;
+export async function ensureMongoLoaded() {
+  if (DYNAMIC_LEARNED_FAQS.length === 0 && process.env.MONGODB_URI) {
+    if (!mongoLoadPromise) {
+      mongoLoadPromise = loadLearnedQAFromMongo(true).finally(() => {
+        mongoLoadPromise = null;
+      });
+    }
+    await mongoLoadPromise;
+  }
+}
+
 export async function persistLearnedQAToMongo(item) {
   if (!process.env.MONGODB_URI) return null;
   try {
