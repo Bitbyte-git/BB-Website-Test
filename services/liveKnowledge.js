@@ -167,7 +167,33 @@ BitByte Technologies Company Profile:
     tags: ["company", "about", "bitbyte", "experience", "stats", "projects", "clients", "satisfaction", "salem", "founder", "mission", "vision"],
   },
 
-  // 2. Official Contact & Consultation
+  // 2. Official Leadership & Employee Team Directory
+  {
+    id: "leadership_team_directory",
+    title: "Official Leadership & Employee Team Directory",
+    category: "company",
+    url: "/about",
+    summary:
+      "BitByte Technologies verified executive leadership directory and employee roster.",
+    content: `
+BitByte Technologies Official Executive Leadership & Employee Roster:
+• Executive Leadership:
+  - CEO (Chief Executive Officer): Sri Priyadharshini
+  - ED (Executive Director): Agilan
+  - MD (Managing Director): Beemarao
+• Total Team Members / Employees: 7
+  - Senthil (Development Team)
+  - Roshini (Development Team)
+  - Selva (Development Team)
+  - Aarthi (Development Team)
+  - Jai
+  - Mano
+  - Naveen
+`,
+    tags: ["ceo", "md", "ed", "director", "managing director", "executive director", "leader", "leadership", "founder", "employees", "team", "staff", "sri priyadharshini", "agilan", "beemarao", "senthil", "roshini", "selva", "aarthi", "jai", "mano", "naveen"],
+  },
+
+  // 3. Official Contact & Consultation
   {
     id: "contact_office",
     title: "Official Contact Channels & Salem Office Details",
@@ -528,6 +554,38 @@ Careers & Internships at BitByte Technologies (Salem, Tamil Nadu):
 // ─── FULL WEBSITE FREQUENTLY ASKED QUESTIONS (FAQS) ───────────────────────────
 
 export const FAQS = [
+  {
+    question: "Who is the MD of BitByte Technologies?",
+    answer:
+      "The MD (Managing Director) of BitByte Technologies is Beemarao.",
+    docTitle: "Official Leadership Directory",
+    url: "/about",
+    tokens: ["md", "managing director", "md ?", "who is md", "bitbyte md", "director beemarao", "beemarao"],
+  },
+  {
+    question: "Who is the CEO of BitByte Technologies?",
+    answer:
+      "The CEO (Chief Executive Officer) of BitByte Technologies is Sri Priyadharshini.",
+    docTitle: "Official Leadership Directory",
+    url: "/about",
+    tokens: ["ceo", "chief executive officer", "ceo ?", "who is ceo", "bitbyte ceo", "sri priyadharshini", "priyadharshini"],
+  },
+  {
+    question: "Who is the ED of BitByte Technologies?",
+    answer:
+      "The ED (Executive Director) of BitByte Technologies is Agilan.",
+    docTitle: "Official Leadership Directory",
+    url: "/about",
+    tokens: ["ed", "executive director", "ed ?", "who is ed", "bitbyte ed", "agilan"],
+  },
+  {
+    question: "How many employees work at BitByte Technologies?",
+    answer:
+      "BitByte Technologies has 7 team members: Senthil, Roshini, Selva, Aarthi, Jai, Mano, and Naveen, led by CEO Sri Priyadharshini, ED Agilan, and MD Beemarao.",
+    docTitle: "Official Team Directory",
+    url: "/about",
+    tokens: ["how many employees", "how many employee", "employees", "team members", "headcount", "staff", "who are the employees", "employees count"],
+  },
   {
     question: "Can I call this number?",
     answer:
