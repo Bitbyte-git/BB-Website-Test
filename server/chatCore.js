@@ -106,13 +106,26 @@ export async function createChatReply(
     };
   }
 
-  // Ensure latest dynamic knowledge is loaded from MongoDB
-  try {
-    await ensureMongoLoaded();
-  } catch {}
+  // Background check for dynamic MongoDB Q&A updates without blocking response latency
+  ensureMongoLoaded().catch(() => {});
 
   // Step 1: Sub-2ms fast knowledge retrieval from the full website knowledge store
   const knowledge = findRelevantKnowledge(trimmedMessage);
+
+  // Instant 100% verified response for direct factual / FAQ matches
+  if (knowledge.exactMatchFaq) {
+    return {
+      success: true,
+      reply: knowledge.exactMatchFaq.answer,
+      sources: [
+        {
+          title: knowledge.exactMatchFaq.docTitle || "BitByte Technologies",
+          url: knowledge.exactMatchFaq.url || "/about",
+        },
+      ],
+      matchedFaqs: [knowledge.exactMatchFaq.question],
+    };
+  }
 
   // Step 2: Build conversation context with knowledge injection
   const messages = [

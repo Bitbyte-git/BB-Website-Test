@@ -560,7 +560,7 @@ export const FAQS = [
       "The MD (Managing Director) of BitByte Technologies is Beemarao.",
     docTitle: "Official Leadership Directory",
     url: "/about",
-    tokens: ["md", "managing director", "md ?", "who is md", "bitbyte md", "director beemarao", "beemarao"],
+    tokens: ["md", "managing director", "md ?", "who is md", "bitbyte md", "director beemarao", "beemarao", "md name", "md yaaru", "md yaaru bro"],
   },
   {
     question: "Who is the CEO of BitByte Technologies?",
@@ -568,7 +568,7 @@ export const FAQS = [
       "The CEO (Chief Executive Officer) of BitByte Technologies is Sri Priyadharshini.",
     docTitle: "Official Leadership Directory",
     url: "/about",
-    tokens: ["ceo", "chief executive officer", "ceo ?", "who is ceo", "bitbyte ceo", "sri priyadharshini", "priyadharshini"],
+    tokens: ["ceo", "chief executive officer", "ceo ?", "who is ceo", "bitbyte ceo", "sri priyadharshini", "priyadharshini", "ceo name", "ceo yaaru", "ceo yaaru bro"],
   },
   {
     question: "Who is the ED of BitByte Technologies?",
@@ -576,7 +576,7 @@ export const FAQS = [
       "The ED (Executive Director) of BitByte Technologies is Agilan.",
     docTitle: "Official Leadership Directory",
     url: "/about",
-    tokens: ["ed", "executive director", "ed ?", "who is ed", "bitbyte ed", "agilan"],
+    tokens: ["ed", "executive director", "ed ?", "who is ed", "bitbyte ed", "agilan", "ed name", "ed yaaru", "ed yaaru bro"],
   },
   {
     question: "How many employees work at BitByte Technologies?",
@@ -584,7 +584,15 @@ export const FAQS = [
       "BitByte Technologies has 7 team members: Senthil, Roshini, Selva, Aarthi, Jai, Mano, and Naveen, led by CEO Sri Priyadharshini, ED Agilan, and MD Beemarao.",
     docTitle: "Official Team Directory",
     url: "/about",
-    tokens: ["how many employees", "how many employee", "employees", "team members", "headcount", "staff", "who are the employees", "employees count"],
+    tokens: ["how many employees", "how many employee", "employees", "team members", "team", "headcount", "staff", "who are the employees", "employees count", "members", "team members yaaru", "employees ethanai peru", "developers"],
+  },
+  {
+    question: "Who are the developers and team members at BitByte Technologies?",
+    answer:
+      "BitByte Technologies development team includes Senthil, Roshini, Selva, and Aarthi. Our team also includes Jai, Mano, and Naveen, led by CEO Sri Priyadharshini, ED Agilan, and MD Beemarao.",
+    docTitle: "Official Team Directory",
+    url: "/about",
+    tokens: ["developers", "development team", "senthil", "roshini", "selva", "aarthi", "jai", "mano", "naveen", "team", "engineers"],
   },
   {
     question: "Can I call this number?",
@@ -592,7 +600,7 @@ export const FAQS = [
       "Yes! You can call our technical consulting team directly at +91 99437 43136 or message us on WhatsApp. Tap the Call button below to dial directly from your phone.",
     docTitle: "Official Contact & Direct Calling",
     url: "/contact",
-    tokens: ["call", "phone", "number", "dial", "telephone", "mobile", "contact"],
+    tokens: ["call", "phone", "number", "dial", "telephone", "mobile", "contact", "contact number"],
   },
   {
     question: "What services does BitByte Technologies provide?",
@@ -600,7 +608,7 @@ export const FAQS = [
       "BitByte Technologies provides Custom Web Application Development (MERN, PERN, Python), Mobile App Development (Flutter, React Native, iOS, Android), AI & Machine Learning Solutions (Agents, LLMs, RAG, Chatbots), Cloud Architecture & DevOps (AWS, GCP, Azure, Docker, Kubernetes), UI/UX Design (Figma), AI-Powered Digital Marketing & SEO/AEO, and Data-Driven Business Analytics (PowerBI, Tableau).",
     docTitle: "Core Services Overview",
     url: "/services",
-    tokens: ["services", "what do you do", "offer", "capabilities", "solutions", "provide"],
+    tokens: ["services", "what do you do", "offer", "capabilities", "solutions", "provide", "services provide", "services list"],
   },
   {
     question: "I need website",
@@ -608,7 +616,7 @@ export const FAQS = [
       "Yes! BitByte Technologies designs and develops custom, responsive business websites, corporate portals, and marketing landing pages using React, Next.js, and Tailwind CSS. We deliver high-speed, SEO-optimized, and mobile-friendly websites tailored to your brand. Let's schedule a free discovery call to discuss your website requirements—WhatsApp +91 99437 43136 or email reachus@bitbytetech.org.",
     docTitle: "Website Development Services",
     url: "/services/web-development",
-    tokens: ["need website", "want website", "build website", "website", "websites", "website_intent", "business website", "landing page", "site"],
+    tokens: ["need website", "want website", "build website", "website", "websites", "website_intent", "business website", "landing page", "site", "i need website ?", "i need website", "website pannanum", "website seiyanum"],
   },
   {
     question: "Do you build business websites and landing pages?",
@@ -624,7 +632,7 @@ export const FAQS = [
       "Yes! BitByte Technologies specializes in building scalable custom Web Applications, SaaS platforms, enterprise ERP/CRM systems, and interactive business dashboards using MERN (MongoDB, Express, React, Node.js), PERN (PostgreSQL), and Python microservices with secure role-based access. Connect with our engineering team via WhatsApp at +91 99437 43136 or email reachus@bitbytetech.org.",
     docTitle: "Web Application Development",
     url: "/services/web-development/custom-web-applications",
-    tokens: ["need webapp", "need web app", "webapp", "web app", "web application", "webapp_intent", "saas", "dashboard", "portal", "mern", "pern"],
+    tokens: ["need webapp", "need web app", "webapp", "web app", "web application", "webapp_intent", "saas", "dashboard", "portal", "mern", "pern", "i need webapp ?", "i need webapp", "webapp pannanum"],
   },
   {
     question: "I need mobile app",
@@ -632,7 +640,7 @@ export const FAQS = [
       "Yes! BitByte Technologies builds native-performance cross-platform Mobile Applications for Android and iOS using Flutter and React Native. We deliver seamless UI/UX, offline sync, real-time push notifications, payment gateways, and backend API integrations. Let's connect on WhatsApp at +91 99437 43136 or email reachus@bitbytetech.org to discuss your mobile app idea.",
     docTitle: "Mobile Application Development",
     url: "/services",
-    tokens: ["need app", "need mobile app", "mobile app", "app", "mobile_intent", "android", "ios", "flutter", "react native"],
+    tokens: ["need app", "need mobile app", "mobile app", "app", "mobile_intent", "android", "ios", "flutter", "react native", "i need mobile app ?", "i need mobile app", "mobile app pannanum"],
   },
   {
     question: "Where is BitByte Technologies located and how can I contact you?",
@@ -805,7 +813,10 @@ export async function loadLearnedQAFromMongo(forceReload = false) {
       dns.setServers(["8.8.8.8", "1.1.1.1"]);
     } catch {}
     const { MongoClient } = await import("mongodb");
-    const client = new MongoClient(process.env.MONGODB_URI);
+    const client = new MongoClient(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 2000,
+      connectTimeoutMS: 2000,
+    });
     await client.connect();
     const db = client.db(process.env.MONGODB_DB_NAME || "BB-Careers-Application");
     const docs = await db.collection("chatbot_learned_qa").find({ verified: { $ne: false } }).sort({ learnedAt: -1 }).limit(500).toArray();
@@ -857,7 +868,10 @@ export async function persistLearnedQAToMongo(item) {
       dns.setServers(["8.8.8.8", "1.1.1.1"]);
     } catch {}
     const { MongoClient } = await import("mongodb");
-    const client = new MongoClient(process.env.MONGODB_URI);
+    const client = new MongoClient(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 2000,
+      connectTimeoutMS: 2000,
+    });
     await client.connect();
     const db = client.db(process.env.MONGODB_DB_NAME || "BB-Careers-Application");
     const res = await db.collection("chatbot_learned_qa").updateOne(
@@ -889,7 +903,10 @@ export async function bulkPersistLearnedQAToMongo(items) {
       dns.setServers(["8.8.8.8", "1.1.1.1"]);
     } catch {}
     const { MongoClient } = await import("mongodb");
-    const client = new MongoClient(process.env.MONGODB_URI);
+    const client = new MongoClient(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 2000,
+      connectTimeoutMS: 2000,
+    });
     await client.connect();
     const db = client.db(process.env.MONGODB_DB_NAME || "BB-Careers-Application");
     const collection = db.collection("chatbot_learned_qa");
@@ -980,7 +997,10 @@ export async function getLearnedQAFromMongo() {
       dns.setServers(["8.8.8.8", "1.1.1.1"]);
     } catch {}
     const { MongoClient } = await import("mongodb");
-    const client = new MongoClient(process.env.MONGODB_URI);
+    const client = new MongoClient(process.env.MONGODB_URI, {
+      serverSelectionTimeoutMS: 2000,
+      connectTimeoutMS: 2000,
+    });
     await client.connect();
     const db = client.db(process.env.MONGODB_DB_NAME || "BB-Careers-Application");
     const docs = await db.collection("chatbot_learned_qa").find({}).sort({ learnedAt: -1 }).limit(500).toArray();
@@ -1121,12 +1141,30 @@ export function findRelevantKnowledge(query) {
   // 1. Score FAQs (Both static and dynamic learned FAQs)
   const scoredFaqs = allFaqs.map((faq) => {
     let score = 0;
+    const cleanQuery = queryLower.replace(/[?!.,;]/g, "").trim();
+    const cleanFaqQ = faq.question.toLowerCase().replace(/[?!.,;]/g, "").trim();
+
+    // Exact question match
+    if (cleanQuery === cleanFaqQ) {
+      score += 600;
+    }
+
+    const tokenSet = new Set();
     const qTokens = tokenize(faq.question);
-    const faqTokens = new Set([...qTokens, ...faq.tokens.map((t) => ALIAS_MAP[t] || t)]);
+    qTokens.forEach((t) => tokenSet.add(t));
+
+    (faq.tokens || []).forEach((t) => {
+      const norm = (ALIAS_MAP[t.toLowerCase()] || t.toLowerCase()).replace(/[?!.,;]/g, "").trim();
+      tokenSet.add(norm);
+      if (cleanQuery === norm) {
+        score += 500;
+      }
+      tokenize(norm).forEach((sub) => tokenSet.add(sub));
+    });
 
     for (const token of queryTokens) {
-      if (faqTokens.has(token)) {
-        score += 6; // High direct question match
+      if (tokenSet.has(token)) {
+        score += 8; // High direct token match
       }
     }
 
@@ -1137,10 +1175,22 @@ export function findRelevantKnowledge(query) {
     if (isTimelineFaq && !isTimelineQuery) score -= 500;
     if (isCostFaq && !isCostQuery) score -= 500;
 
-    if (isWebsiteIntent && (faq.docTitle.includes("Website Development") || faq.tokens.includes("website_intent"))) score += 150;
-    if (isWebappIntent && (faq.docTitle.includes("Web Application") || faq.tokens.includes("webapp_intent"))) score += 150;
-    if (isMobileIntent && (faq.docTitle.includes("Mobile App") || faq.tokens.includes("mobile_intent"))) score += 150;
-    if (isEcommerceIntent && (faq.docTitle.includes("Ecommerce") || faq.tokens.includes("ecommerce_intent"))) score += 150;
+    // Distinct service boosts
+    if (isWebsiteIntent && (faq.docTitle.includes("Website Development") || faq.tokens.includes("website_intent") || faq.tokens.includes("website"))) score += 180;
+    if (isWebappIntent && (faq.docTitle.includes("Web Application") || faq.tokens.includes("webapp_intent") || faq.tokens.includes("webapp"))) score += 180;
+    if (isMobileIntent && (faq.docTitle.includes("Mobile App") || faq.tokens.includes("mobile_intent") || faq.tokens.includes("mobileapp"))) score += 180;
+    if (isEcommerceIntent && (faq.docTitle.includes("Ecommerce") || faq.tokens.includes("ecommerce_intent"))) score += 180;
+
+    // Leadership & Team directory boosts
+    const isCeoQuery = /\b(ceo|chief\s*executive\s*officer|priyadharshini)\b/i.test(queryLower);
+    const isEdQuery = /\b(ed|executive\s*director|agilan)\b/i.test(queryLower);
+    const isMdQuery = /\b(md|managing\s*director|beemarao)\b/i.test(queryLower);
+    const isTeamQuery = /\b(team|members|employees|staff|developers|headcount|roster)\b/i.test(queryLower) && !isCeoQuery && !isEdQuery && !isMdQuery;
+
+    if (isCeoQuery && faq.tokens.some((t) => t.toLowerCase().includes("ceo"))) score += 300;
+    if (isEdQuery && faq.tokens.some((t) => t.toLowerCase().includes("ed"))) score += 300;
+    if (isMdQuery && faq.tokens.some((t) => t.toLowerCase().includes("md"))) score += 300;
+    if (isTeamQuery && (faq.tokens.includes("employees") || faq.tokens.includes("team members") || faq.tokens.includes("developers"))) score += 300;
 
     if (isContactIntent && faq.docTitle.includes("Contact")) score += 100;
     if (isCareerIntent && faq.docTitle.includes("Career")) score += 100;
@@ -1151,6 +1201,7 @@ export function findRelevantKnowledge(query) {
 
   scoredFaqs.sort((a, b) => b.score - a.score);
   const matchedFaqs = scoredFaqs.filter((item) => item.score > 0).slice(0, 3).map((item) => item.faq);
+  const exactMatchFaq = scoredFaqs[0] && scoredFaqs[0].score >= 100 ? scoredFaqs[0].faq : null;
 
   // 2. Score Documents
   const scoredDocs = COMPANY_DOCUMENTS.map((doc) => {
@@ -1217,6 +1268,7 @@ export function findRelevantKnowledge(query) {
   const sources = Array.from(sourcesMap.values()).slice(0, 4);
 
   return {
+    exactMatchFaq,
     matchedFaqs,
     matchedDocs,
     context,
