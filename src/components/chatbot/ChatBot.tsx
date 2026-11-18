@@ -5,7 +5,7 @@ import './ChatBot.css'
 
 const ChatWindow = lazy(() => import('./ChatWindow'))
 const rootPath = '/'
-const DEV_GROQ_CHAT_PROXY_PATH = '/__groq-chat'
+const DEV_CHAT_PROXY_PATH = '/__chat-proxy'
 
 function makeMessage(sender, text, extras = {}) {
   return {
@@ -41,12 +41,11 @@ function getChatApiUrl() {
   const apiUrl = (
     import.meta.env.VITE_OPENROUTER_API_URL ||
     import.meta.env.VITE_CHAT_API_URL ||
-    import.meta.env.VITE_GROQ_API_URL ||
     '/api/chat'
   ).trim()
 
   if (import.meta.env.DEV && /^https?:\/\//i.test(apiUrl)) {
-    return DEV_GROQ_CHAT_PROXY_PATH
+    return DEV_CHAT_PROXY_PATH
   }
 
   return apiUrl

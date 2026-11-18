@@ -2,7 +2,7 @@ import { ensureMongoLoaded, findRelevantKnowledge, recordLearnedQA } from "./ser
 
 export const DEFAULT_OPENROUTER_MODEL = "openai/gpt-oss-20b";
 export const DEFAULT_MODEL = "openai/gpt-oss-20b";
-export const DEFAULT_GROQ_MODEL = "openai/gpt-oss-20b";
+export const OPENROUTER_ENDPOINT = "https://openrouter.ai/api/v1/chat/completions";
 
 export const MASTER_SYSTEM_PROMPT = `You are the official AI Technology Consultant for BitByte Technologies, a premier software engineering, web application development, and IT solutions firm based in Salem, Tamil Nadu, India.
 
@@ -14,8 +14,18 @@ export const MASTER_SYSTEM_PROMPT = `You are the official AI Technology Consulta
 • UNRELATED TOPICS REFUSAL (ZERO TOLERANCE):
   If a visitor asks any question unrelated to BitByte Technologies, our software engineering services, tech stacks, projects, careers, or company details (such as external politics, general trivia, cooking recipes, general jokes, external homework, or unrelated questions), POLITELY DECLINE with:
   "I am the dedicated AI Technology Consultant for BitByte Technologies. I can only assist with inquiries regarding our software engineering services, web & mobile app development, AI solutions, showcase projects, and career openings. How can our team help you with your next software project?"
-• ZERO PRICING & TIMELINE GUESSING:
-  NEVER invent, guess, or promise fixed costs or unrealistic delivery dates for custom software requests! Explain that software investments and timelines depend on feature scope, technical architecture, and design fidelity (standard MVPs typically range from 4 to 10 weeks). Promptly invite them to schedule a free technical discovery call with our solutions architects via WhatsApp (+91 99437 43136) or email (reachus@bitbytetech.org).
+• ZERO TIMELINE & PAYMENT TALK WITHOUT EXPLICIT REQUEST:
+  NEVER discuss project timelines (e.g. weeks, months, sprints) or pricing/payment unless the user specifically asks "How long will it take?" or "How much does it cost?".
+  When a user asks for a website, web app, or mobile app, focus strictly on their requirements, highlight our technical capabilities for that specific service, and invite them to schedule a free technical discovery call with our architects via WhatsApp (+91 99437 43136) or email (reachus@bitbytetech.org).
+• MULTI-SERVICE DISTINCTION (CRITICAL - EACH SERVICE IS DISTINCT):
+  BitByte Technologies provides multiple distinct digital engineering services. NEVER confuse or merge them:
+  1. Website Development: High-performance business websites, marketing landing pages, corporate portals, and portfolio sites (built with React, Next.js, Tailwind CSS, WordPress). Fast, responsive, and SEO-optimized.
+  2. Web Application Development: Complex SaaS platforms, client portals, real-time analytics dashboards, ERP/CRM systems, and custom database web apps (built with MERN, PERN, Python, microservices).
+  3. Mobile App Development: Cross-platform iOS & Android mobile apps (built with Flutter, React Native) with offline sync, push notifications, and native performance.
+  4. Ecommerce Solutions: Online stores, shopping carts, inventory systems, and Razorpay/Stripe payment gateways (Next.js, Shopify, WooCommerce).
+  5. AI & Machine Learning: Custom conversational AI agents, RAG knowledge retrieval, document intelligence/OCR, and predictive models.
+  6. UI/UX Design: Interactive Figma prototypes, wireframing, and custom design systems.
+  7. Digital Marketing & SEO/AEO: Performance marketing, search engine optimization, and brand authority positioning.
 • STRICTLY NON-SUPPORTED REQUESTS:
   If a visitor asks for illegal hacking, bypassing security, academic cheats, physical hardware repair, or services outside modern software development, politely state that BitByte Technologies specializes strictly in authorized, secure digital software engineering.
 
@@ -68,23 +78,7 @@ export const MASTER_SYSTEM_PROMPT = `You are the official AI Technology Consulta
 
 export const SYSTEM_PROMPT = MASTER_SYSTEM_PROMPT;
 
-/**
- * Determine API endpoint based on API key prefix or explicit configuration
- */
-function resolveProvider(apiKey) {
-  if (apiKey.startsWith("gsk_")) {
-    return {
-      endpoint: "https://api.groq.com/openai/v1/chat/completions",
-      defaultModel: DEFAULT_GROQ_MODEL,
-      name: "Groq",
-    };
-  }
-  return {
-    endpoint: "https://openrouter.ai/api/v1/chat/completions",
-    defaultModel: DEFAULT_MODEL,
-    name: "OpenRouter",
-  };
-}
+
 
 /**
  * High-performance chat reply generator with in-memory knowledge retrieval
@@ -94,12 +88,23 @@ export async function createChatReply(
   apiKey,
   options = {}
 ) {
-  if (!apiKey) {
-    throw new Error("API key is not configured");
-  }
-
   const modelOverride = typeof options === "string" ? options : options.model;
   const history = Array.isArray(options.history) ? options.history : [];
+  const trimmedMessage = String(message || "").trim();
+
+  // Instant zero-latency response for common greetings
+  const isGreeting = /^(hi|hello|hey|vanakkam|hai|hoi|good\s*(morning|afternoon|evening)|howdy)\b/i.test(trimmedMessage);
+  if (isGreeting && trimmedMessage.split(/\s+/).length <= 3) {
+    return {
+      success: true,
+      reply: "Hello! Welcome to BitByte Technologies. We build custom Web Apps, Mobile Apps, AI Solutions, and Cloud Architecture. How can our team assist you with your project today?",
+      sources: [
+        { title: "About BitByte Technologies", url: "/about" },
+        { title: "Official Contact Channels & Salem Office Details", url: "/contact" },
+      ],
+      matchedFaqs: [],
+    };
+  }
 
   // Ensure latest dynamic knowledge is loaded from MongoDB
   try {
@@ -107,7 +112,7 @@ export async function createChatReply(
   } catch {}
 
   // Step 1: Sub-2ms fast knowledge retrieval from the full website knowledge store
-  const knowledge = findRelevantKnowledge(message);
+  const knowledge = findRelevantKnowledge(trimmedMessage);
 
   // Step 2: Build conversation context with knowledge injection
   const messages = [
@@ -154,8 +159,7 @@ export async function createChatReply(
   // Append latest user message
   messages.push({ role: "user", content: String(message).trim() });
 
-  const provider = resolveProvider(apiKey);
-  const selectedModel = modelOverride || provider.defaultModel;
+  const selectedModel = modelOverride || DEFAULT_OPENROUTER_MODEL;
 
   const headers = {
     Authorization: `Bearer ${apiKey}`,
@@ -166,27 +170,29 @@ export async function createChatReply(
 
   let replyText = "";
 
-  try {
-    const response = await fetch(provider.endpoint, {
-      method: "POST",
-      headers,
-      body: JSON.stringify({
-        model: selectedModel,
-        messages,
-        temperature: 0.15,
-        max_tokens: 500, // Balanced medium length response
-      }),
-    });
+  if (apiKey) {
+    try {
+      const response = await fetch(OPENROUTER_ENDPOINT, {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          model: selectedModel,
+          messages,
+          temperature: 0.15,
+          max_tokens: 500, // Balanced medium length response
+        }),
+      });
 
-    if (response.ok) {
-      const data = await response.json();
-      replyText = data.choices?.[0]?.message?.content?.trim() || "";
-    } else {
-      const errorText = await response.text().catch(() => "");
-      console.warn(`[chatCore] ${provider.name} API error (${response.status}): ${errorText}`);
+      if (response.ok) {
+        const data = await response.json();
+        replyText = data.choices?.[0]?.message?.content?.trim() || "";
+      } else {
+        const errorText = await response.text().catch(() => "");
+        console.warn(`[chatCore] OpenRouter API error (${response.status}): ${errorText}`);
+      }
+    } catch (netErr) {
+      console.warn(`[chatCore] Fetch error calling OpenRouter: ${netErr.message}`);
     }
-  } catch (netErr) {
-    console.warn(`[chatCore] Fetch error calling ${provider.name}: ${netErr.message}`);
   }
 
   // Resilient fallback to verified in-memory knowledge store if remote LLM timed out or errored
@@ -195,15 +201,8 @@ export async function createChatReply(
       replyText = knowledge.matchedFaqs[0].answer;
     } else {
       replyText =
-        "Information regarding that is not currently recorded in our verified knowledge base. Please contact our team via WhatsApp at +91 99437 43136 or reachus@bitbytetech.org for personalized guidance.";
+        "BitByte Technologies Salem-la Custom Web Applications (React, Node, Next.js), Mobile Apps (Flutter, React Native), AI Solutions, matrum Cloud Architecture provide panrom. Let's schedule a free technical discovery call—WhatsApp +91 99437 43136 or email reachus@bitbytetech.org.";
     }
-  }
-
-  // Quality-Filtered Self-Learning: Cache verified Q&A for future users
-  try {
-    recordLearnedQA(message, replyText);
-  } catch {
-    // Fail-safe: background learning must never disrupt chat response
   }
 
   return {

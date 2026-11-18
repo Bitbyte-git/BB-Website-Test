@@ -10,7 +10,7 @@ import careerApplyHandler from "./api/career-apply.js";
 import careerApplicationsHandler from "./api/career-applications.js";
 import careerResumeHandler from "./api/career-resume.js";
 import adminKnowledgeHandler from "./api/admin-knowledge.js";
-import { DEFAULT_MODEL, DEFAULT_GROQ_MODEL, createChatReply } from "./server/chatCore.js";
+import { DEFAULT_MODEL, createChatReply } from "./server/chatCore.js";
 
 function readRequestBody(req) {
   return new Promise((resolve, reject) => {
@@ -95,20 +95,13 @@ function bitbyteLocalChatApi() {
         try {
           const apiKey =
             process.env.OPENROUTER_API_KEY ||
-            env.OPENROUTER_API_KEY ||
-            process.env.GROQ_API_KEY ||
-            env.GROQ_API_KEY;
+            env.OPENROUTER_API_KEY;
           const model =
             process.env.OPENROUTER_MODEL ||
             env.OPENROUTER_MODEL ||
             process.env.VITE_OPENROUTER_MODEL ||
             env.VITE_OPENROUTER_MODEL ||
-            process.env.VITE_GROQ_MODEL ||
-            env.VITE_GROQ_MODEL ||
-            process.env.GROQ_MODEL ||
-            env.GROQ_MODEL ||
-            DEFAULT_MODEL ||
-            DEFAULT_GROQ_MODEL;
+            DEFAULT_MODEL;
 
           const result = await createChatReply(message, apiKey, { model, history });
           sendJson(res, 200, {
@@ -118,9 +111,11 @@ function bitbyteLocalChatApi() {
           });
         } catch (error) {
           server.config.logger.error(`AI local chat error: ${error.message}`);
-          sendJson(res, 500, {
-            success: false,
-            error: "Unable to generate a response right now",
+          sendJson(res, 200, {
+            success: true,
+            reply:
+              "BitByte Technologies Salem-la Custom Web Applications, Mobile Apps, AI Solutions, matrum Cloud Services provide panrom. Let's schedule a free discovery call—WhatsApp +91 99437 43136 or email reachus@bitbytetech.org.",
+            sources: [],
           });
         }
       });
@@ -140,9 +135,8 @@ function bitbyteLocalCareerApi() {
         "CAREER_ADMIN_ALLOWED_ORIGIN",
         "CAREER_RESUME_DOWNLOAD_TOKEN",
         "CAREER_APPLY_ALLOWED_ORIGIN",
-        "GROQ_API_KEY",
-        "GROQ_MODEL",
         "OPENROUTER_API_KEY",
+        "OPENROUTER_MODEL",
         "OPENROUTER_MODEL",
       ]);
 
@@ -192,17 +186,17 @@ function visitorCounterDevProxy(mode) {
   }
 }
 
-function groqChatDevProxy(mode) {
+function chatDevProxy(mode) {
   const env = loadEnv(mode, process.cwd(), "");
-  const groqChatApi = env.VITE_GROQ_API_URL || env.VITE_CHAT_API_URL;
+  const chatApi = env.VITE_CHAT_API_URL || env.VITE_OPENROUTER_API_URL;
 
-  if (!groqChatApi) return undefined;
+  if (!chatApi) return undefined;
 
   try {
-    const apiUrl = new URL(groqChatApi);
+    const apiUrl = new URL(chatApi);
 
     return {
-      "/__groq-chat": {
+      "/__chat-proxy": {
         target: apiUrl.origin,
         changeOrigin: true,
         secure: true,
@@ -217,7 +211,7 @@ function groqChatDevProxy(mode) {
 function buildDevProxy(mode) {
   return {
     ...visitorCounterDevProxy(mode),
-    ...groqChatDevProxy(mode),
+    ...chatDevProxy(mode),
   };
 }
 

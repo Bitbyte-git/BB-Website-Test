@@ -74,6 +74,22 @@ const ALIAS_MAP = {
   samples: "showcase_intent",
   works: "showcase_intent",
   examples: "showcase_intent",
+  // Distinct service intent mappings
+  website: "website_intent",
+  websites: "website_intent",
+  webapp: "webapp_intent",
+  webapps: "webapp_intent",
+  "web-app": "webapp_intent",
+  saas: "webapp_intent",
+  mobileapp: "mobile_intent",
+  mobileapps: "mobile_intent",
+  "mobile-app": "mobile_intent",
+  app: "mobile_intent",
+  apps: "mobile_intent",
+  android: "mobile_intent",
+  ios: "mobile_intent",
+  ecommerce: "ecommerce_intent",
+  store: "ecommerce_intent",
   // Tanglish & Tamil intent mappings
   enna: "what",
   ethu: "what",
@@ -283,12 +299,12 @@ AI & Machine Learning Solutions:
 • Capabilities:
   - Custom AI Agents & Chatbots: Context-aware conversational assistants trained on company data.
   - Retrieval-Augmented Generation (RAG): Enterprise search engines grounding LLMs in internal documents.
-  - LLM Integrations: OpenRouter, OpenAI (GPT-4o, GPT-oss), Groq (Llama-3.3), Anthropic Claude.
+  - LLM Integrations: OpenRouter, OpenAI (GPT-4o, GPT-oss), Anthropic Claude.
   - Document Intelligence: Automated OCR extraction for invoices, KYC documents, and contracts.
   - Predictive Analytics: Churn prediction, sales demand forecasting, and recommendation algorithms.
   - Enterprise Data Privacy: On-premise AI deployments and zero-data-retention API architectures.
 `,
-    tags: ["ai", "machine learning", "rag", "llm", "chatbot", "agents", "automation", "predictive", "nlp", "computer vision", "openrouter", "groq"],
+    tags: ["ai", "machine learning", "rag", "llm", "chatbot", "agents", "automation", "predictive", "nlp", "computer vision", "openrouter"],
   },
 
   // 8. Cloud Architecture & DevOps Services
@@ -529,6 +545,38 @@ export const FAQS = [
     tokens: ["services", "what do you do", "offer", "capabilities", "solutions", "provide"],
   },
   {
+    question: "I need website",
+    answer:
+      "Yes! BitByte Technologies designs and develops custom, responsive business websites, corporate portals, and marketing landing pages using React, Next.js, and Tailwind CSS. We deliver high-speed, SEO-optimized, and mobile-friendly websites tailored to your brand. Let's schedule a free discovery call to discuss your website requirements—WhatsApp +91 99437 43136 or email reachus@bitbytetech.org.",
+    docTitle: "Website Development Services",
+    url: "/services/web-development",
+    tokens: ["need website", "want website", "build website", "website", "websites", "website_intent", "business website", "landing page", "site"],
+  },
+  {
+    question: "Do you build business websites and landing pages?",
+    answer:
+      "Yes! BitByte Technologies crafts modern, responsive business websites, corporate sites, portfolio showcases, and high-converting landing pages built with React, Next.js, Tailwind CSS, and WordPress. We optimize every site for search engines and performance. Connect with us via WhatsApp at +91 99437 43136 or reachus@bitbytetech.org.",
+    docTitle: "Website Development Services",
+    url: "/services/web-development",
+    tokens: ["website", "websites", "website_intent", "landing page", "business website", "corporate website", "portfolio website"],
+  },
+  {
+    question: "I need webapp",
+    answer:
+      "Yes! BitByte Technologies specializes in building scalable custom Web Applications, SaaS platforms, enterprise ERP/CRM systems, and interactive business dashboards using MERN (MongoDB, Express, React, Node.js), PERN (PostgreSQL), and Python microservices with secure role-based access. Connect with our engineering team via WhatsApp at +91 99437 43136 or email reachus@bitbytetech.org.",
+    docTitle: "Web Application Development",
+    url: "/services/web-development/custom-web-applications",
+    tokens: ["need webapp", "need web app", "webapp", "web app", "web application", "webapp_intent", "saas", "dashboard", "portal", "mern", "pern"],
+  },
+  {
+    question: "I need mobile app",
+    answer:
+      "Yes! BitByte Technologies builds native-performance cross-platform Mobile Applications for Android and iOS using Flutter and React Native. We deliver seamless UI/UX, offline sync, real-time push notifications, payment gateways, and backend API integrations. Let's connect on WhatsApp at +91 99437 43136 or email reachus@bitbytetech.org to discuss your mobile app idea.",
+    docTitle: "Mobile Application Development",
+    url: "/services",
+    tokens: ["need app", "need mobile app", "mobile app", "app", "mobile_intent", "android", "ios", "flutter", "react native"],
+  },
+  {
     question: "Where is BitByte Technologies located and how can I contact you?",
     answer:
       "BitByte Technologies is located at 2nd Floor, Raja Complex West Wing, Opp: Sago Serve, Omalur Main Road, Salem-636302, Tamil Nadu, India. You can contact us via Phone & WhatsApp at +91 99437 43136 or email us at reachus@bitbytetech.org. Office hours are Monday to Friday, 9:00 AM – 7:00 PM IST.",
@@ -579,10 +627,10 @@ export const FAQS = [
   {
     question: "Can you build custom AI chatbots and LLM workflows?",
     answer:
-      "Yes. We build custom conversational AI agents, RAG knowledge bases, intelligent chatbots, and document automation workflows using OpenRouter, OpenAI, Groq, Claude, and open-weight models.",
+      "Yes. We build custom conversational AI agents, RAG knowledge bases, intelligent chatbots, and document automation workflows using OpenRouter, OpenAI, Claude, and open-weight models.",
     docTitle: "AI & Machine Learning Solutions",
     url: "/services/digital-marketing/ai-powered-digital-marketing-solutions",
-    tokens: ["ai", "chatbot", "llm", "rag", "agents", "machine learning", "automation", "gpt", "groq", "openrouter"],
+    tokens: ["ai", "chatbot", "llm", "rag", "agents", "machine learning", "automation", "gpt", "openrouter"],
   },
   {
     question: "Do you build ecommerce websites with payment gateways?",
@@ -998,6 +1046,20 @@ export function findRelevantKnowledge(query) {
   const isCareerIntent = queryTokens.includes("career_intent");
   const isShowcaseIntent = queryTokens.includes("showcase_intent");
 
+  // Distinct service and query intents
+  const queryLower = query.toLowerCase();
+  const isTimelineQuery =
+    queryTokens.some((t) => ["timeline", "duration", "how long", "time", "weeks", "months", "schedule", "neram", "naal", "days"].includes(t)) ||
+    /how\s+long|how\s+many\s+(days|weeks|months)|when\s+will|timeline/i.test(queryLower);
+  const isCostQuery =
+    queryTokens.some((t) => ["cost", "price", "pricing", "budget", "rate", "evlo", "kaasu", "panam", "vilai"].includes(t)) ||
+    /how\s+much|cost|price|budget|rate|fee/i.test(queryLower);
+
+  const isWebappIntent = queryTokens.includes("webapp_intent") || /\b(web\s*apps?|web\s*application|saas|dashboards?|portals?)\b/i.test(queryLower);
+  const isWebsiteIntent = !isWebappIntent && (queryTokens.includes("website_intent") || /\bwebsites?\b/i.test(queryLower));
+  const isMobileIntent = queryTokens.includes("mobile_intent") || /\b(mobile\s*apps?|android|ios|flutter|react\s*native)\b/i.test(queryLower);
+  const isEcommerceIntent = queryTokens.includes("ecommerce_intent") || /\b(ecommerce|online\s*store|shopify|woocommerce)\b/i.test(queryLower);
+
   // 1. Score FAQs (Both static and dynamic learned FAQs)
   const scoredFaqs = allFaqs.map((faq) => {
     let score = 0;
@@ -1009,6 +1071,18 @@ export function findRelevantKnowledge(query) {
         score += 6; // High direct question match
       }
     }
+
+    const isTimelineFaq = faq.docTitle.includes("Timelines") || faq.tokens.includes("timeline") || /how long|timeline|weeks|months/i.test(faq.question);
+    const isCostFaq = faq.docTitle.includes("Pricing") || faq.tokens.includes("cost") || /cost|pricing|how much|fee/i.test(faq.question);
+
+    // CRITICAL: NEVER return timeline or pricing FAQs when user didn't ask for timeline or cost!
+    if (isTimelineFaq && !isTimelineQuery) score -= 500;
+    if (isCostFaq && !isCostQuery) score -= 500;
+
+    if (isWebsiteIntent && (faq.docTitle.includes("Website Development") || faq.tokens.includes("website_intent"))) score += 150;
+    if (isWebappIntent && (faq.docTitle.includes("Web Application") || faq.tokens.includes("webapp_intent"))) score += 150;
+    if (isMobileIntent && (faq.docTitle.includes("Mobile App") || faq.tokens.includes("mobile_intent"))) score += 150;
+    if (isEcommerceIntent && (faq.docTitle.includes("Ecommerce") || faq.tokens.includes("ecommerce_intent"))) score += 150;
 
     if (isContactIntent && faq.docTitle.includes("Contact")) score += 100;
     if (isCareerIntent && faq.docTitle.includes("Career")) score += 100;

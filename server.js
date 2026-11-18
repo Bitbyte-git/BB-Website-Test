@@ -39,17 +39,11 @@ function createResponse(req, res) {
   return res;
 }
 
-const server = http.createServer(async (req, res) => {
-
-console.log("Incoming API request:", {
-  method: req.method,
-  url: req.url,
-  contentType: req.headers["content-type"],
-  contentLength: req.headers["content-length"],
-});
+const server = http.createServer((req, res) => {
+  createResponse(req, res);
 
   try {
-    const url = new URL(req.url, `http://${req.headers.host}`);
+    const url = new URL(req.url, `http://${req.headers.host || "127.0.0.1"}`);
     req.query = Object.fromEntries(url.searchParams.entries());
     const handler = handlers[url.pathname];
 
@@ -59,12 +53,49 @@ console.log("Incoming API request:", {
       return res.end(JSON.stringify({ error: "API route not found" }));
     }
 
-    createResponse(req, res);
+    const contentType = (req.headers["content-type"] || "").toLowerCase();
 
-    await handler(req, res);
-  } catch (error) {
-    console.error("API error:", error);
-
+    // Immediately buffer JSON request bodies to prevent dropped stream events
+    if (contentType.includes("application/json")) {
+      let raw = "";
+      req.on("data", (chunk) => {
+        raw += chunk;
+      });
+      req.on("end", async () => {
+        try {
+          req.body = raw ? JSON.parse(raw) : {};
+        } catch {
+          req.body = {};
+        }
+        try {
+          await handler(req, res);
+        } catch (error) {
+          console.error("API error:", error);
+          if (!res.headersSent) {
+            res.statusCode = 500;
+            res.setHeader("Content-Type", "application/json");
+            res.end(JSON.stringify({ error: "Internal server error" }));
+          }
+        }
+      });
+      req.on("error", async () => {
+        req.body = {};
+        try {
+          await handler(req, res);
+        } catch {}
+      });
+    } else {
+      handler(req, res).catch((error) => {
+        console.error("API error:", error);
+        if (!res.headersSent) {
+          res.statusCode = 500;
+          res.setHeader("Content-Type", "application/json");
+          res.end(JSON.stringify({ error: "Internal server error" }));
+        }
+      });
+    }
+  } catch (err) {
+    console.error("Server dispatch error:", err);
     if (!res.headersSent) {
       res.statusCode = 500;
       res.setHeader("Content-Type", "application/json");

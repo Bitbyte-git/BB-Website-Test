@@ -10,7 +10,7 @@ import {
   loadLearnedQAFromMongo,
   persistLearnedQAToMongo,
 } from "../services/liveKnowledge.js";
-import { createChatReply, DEFAULT_MODEL, DEFAULT_GROQ_MODEL } from "../server/chatCore.js";
+import { createChatReply, DEFAULT_MODEL } from "../server/chatCore.js";
 
 function getBearerToken(req) {
   return req.headers.authorization?.replace(/^Bearer\s+/i, "").trim() || "";
@@ -450,12 +450,10 @@ export default async function adminKnowledgeHandler(req, res) {
         try {
           const apiKey =
             process.env.OPENROUTER_API_KEY ||
-            process.env.GROQ_API_KEY ||
-            process.env.VITE_GROQ_API_KEY;
+            process.env.VITE_OPENROUTER_API_KEY;
           const model =
-            process.env.GROQ_MODEL ||
             process.env.OPENROUTER_MODEL ||
-            DEFAULT_GROQ_MODEL;
+            DEFAULT_MODEL;
           const result = await createChatReply(message, apiKey, { model, history });
 
           sendJson(res, 200, {
