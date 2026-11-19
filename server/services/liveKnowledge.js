@@ -959,6 +959,7 @@ export async function bulkPersistLearnedQAToMongo(items) {
     const ops = [];
     for (const item of items) {
       if (!item.question || !item.answer) continue;
+      if (isPromptInstruction(item.question) || isPromptInstruction(item.answer)) continue;
       const tokens = item.tokens || tokenize(item.question);
       ops.push({
         updateOne: {

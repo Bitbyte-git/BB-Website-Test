@@ -446,12 +446,12 @@ export default function BitByteAIAdminHub({ token, onBackToApplications }) {
                   <i className="fa-solid fa-file-word" aria-hidden="true" />
                 </div>
                 <p className="bb-ai-drop-lead">
-                  {selectedFile ? selectedFile.name : "Drag & drop Word (.docx), Excel or Document here"}
+                  {selectedFile ? selectedFile.name : "Drag & drop PDF (.pdf), Word (.docx), Excel or Document here"}
                 </p>
                 <span className="bb-ai-drop-formats">
                   {selectedFile
                     ? `${(selectedFile.size / 1024).toFixed(1)} KB — Ready to feed`
-                    : "Supports Word (.docx, .doc), Excel (.xlsx, .csv), .json, .txt, .md"}
+                    : "Supports PDF (.pdf), Word (.docx, .doc), Excel (.xlsx, .csv), .json, .txt, .md"}
                 </span>
 
                 <label className="career-outline-link bb-ai-choose-btn">
@@ -459,7 +459,7 @@ export default function BitByteAIAdminHub({ token, onBackToApplications }) {
                   Choose File
                   <input
                     type="file"
-                    accept=".xlsx,.xls,.csv,.json,.txt,.md,.docx,.doc"
+                    accept=".pdf,.xlsx,.xls,.csv,.json,.txt,.md,.docx,.doc"
                     onChange={(e) => {
                       if (e.target.files?.[0]) {
                         setSelectedFile(e.target.files[0]);

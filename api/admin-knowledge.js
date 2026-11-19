@@ -2,6 +2,7 @@ import dns from "node:dns";
 dns.setServers(["8.8.8.8", "1.1.1.1"]);
 import dotenv from "dotenv";
 dotenv.config();
+import zlib from "node:zlib";
 
 import {
   bulkPersistLearnedQAToMongo,
@@ -10,7 +11,7 @@ import {
   isPromptInstruction,
   loadLearnedQAFromMongo,
   persistLearnedQAToMongo,
-} from "../services/liveKnowledge.js";
+} from "../server/services/liveKnowledge.js";
 import { createChatReply, DEFAULT_MODEL } from "../server/chatCore.js";
 
 function getBearerToken(req) {
@@ -58,7 +59,155 @@ async function readBody(req) {
 }
 
 /**
- * Parse uploaded file contents into Q&A entries
+ * Extract clean text streams from a PDF binary buffer using Node's native zlib
+ */
+function extractTextFromPdfBuffer(buffer) {
+  let fullText = "";
+  try {
+    const streamRegex = /stream\r?\n([\s\S]*?)\r?\nendstream/g;
+    const rawStr = buffer.toString("binary");
+    let match;
+    while ((match = streamRegex.exec(rawStr)) !== null) {
+      const rawStream = Buffer.from(match[1], "binary");
+      let decompressed = "";
+      try {
+        decompressed = zlib.inflateSync(rawStream).toString("utf-8");
+      } catch {
+        try {
+          decompressed = zlib.inflateRawSync(rawStream).toString("utf-8");
+        } catch {
+          decompressed = rawStream.toString("utf-8");
+        }
+      }
+
+      // Extract text from (text) Tj and [(t) (e) (x) (t)] TJ
+      const tjRegex = /\(([^)]+)\)\s*Tj/g;
+      let tjMatch;
+      while ((tjMatch = tjRegex.exec(decompressed)) !== null) {
+        fullText += tjMatch[1] + " ";
+      }
+
+      const arrayRegex = /\[(.*?)\]\s*TJ/g;
+      let arrMatch;
+      while ((arrMatch = arrayRegex.exec(decompressed)) !== null) {
+        const parts = arrMatch[1].match(/\(([^)]*)\)/g) || [];
+        fullText += parts.map((p) => p.slice(1, -1)).join("") + " ";
+      }
+      fullText += "\n";
+    }
+
+    // Fallback: direct ASCII string extraction
+    if (!fullText.trim()) {
+      const textMatches = rawStr.match(/\(([^)]+)\)\s*Tj/g) || [];
+      fullText = textMatches.map((m) => m.replace(/^\(|\)\s*Tj$/g, "")).join(" ");
+    }
+  } catch (err) {
+    console.error("PDF extraction error:", err);
+  }
+  return fullText.replace(/\\([()\\])/g, "$1").trim();
+}
+
+/**
+ * Universal Intelligent Text Parser:
+ * Transforms ANY raw document text (Word, PDF, Text, Markdown) into clean Q&A pairs
+ * while strictly discarding any AI prompt instructions or meta-directives.
+ */
+function parseUniversalText(text, fileName = "Document") {
+  const items = [];
+  if (!text || typeof text !== "string") return items;
+
+  function cleanAns(raw) {
+    if (!raw) return "";
+    const split = raw.split(/(?:\r?\n)+(?=(?:treat all questions|rule|note|instruction|the chatbot must|intent:))/i);
+    let ans = split[0].trim();
+    // Clean leading Answer prefixes (e.g. "Ans: ...", "A: ...")
+    ans = ans.replace(/^(?:Ans\d*|Answer\d*|A\d*|Reply)\s*[\.:\-]\s*/i, "").trim();
+    // Clean robotic document references (e.g. "According to this document...", "In this PDF...")
+    ans = ans
+      .replace(/^(?:according to|as stated in|as per|based on|in)\s+(?:the|this|our|the provided|the uploaded)\s+(?:document|pdf|file|records|text|context)[,:]?\s*/gi, "")
+      .replace(/\b(?:according to|as stated in|as per|based on|in)\s+(?:the|this|the provided|the uploaded)\s+(?:document|pdf|file|context)\b[,:]?\s*/gi, "")
+      .replace(/^(?:the document states that|the document mentions that)\s*/gi, "")
+      .trim();
+    if (ans.length > 0) {
+      ans = ans.charAt(0).toUpperCase() + ans.slice(1);
+    }
+    return ans;
+  }
+
+  // 1. Canonical answer groups (e.g. PART ... Canonical answer: ...)
+  const variationSections = text.split(/(?=\n[A-Z0-9][^\n]+—[^\n]+)/);
+  for (const sec of variationSections) {
+    const canonicalMatch = sec.match(/Canonical answer:\s*([^\n\r]+(?:\n[^\n\r]+)*)/i);
+    if (!canonicalMatch) continue;
+    const answer = cleanAns(canonicalMatch[1]);
+    if (!answer || isPromptInstruction(answer) || answer.length < 3) continue;
+
+    const beforeCanonical = sec.slice(0, canonicalMatch.index);
+    const lines = beforeCanonical
+      .split(/\r?\n/)
+      .map((l) => l.trim())
+      .filter((l) => l.length > 3 && !l.startsWith("PART ") && !l.includes("—") && !isPromptInstruction(l));
+
+    for (const q of lines) {
+      if (q.length > 3 && q.toLowerCase() !== answer.toLowerCase() && !isPromptInstruction(q)) {
+        items.push({ question: q, answer, category: "Verified Knowledge" });
+      }
+    }
+  }
+
+  // 2. Standard & Numbered Q/A patterns (Q: ... A: ..., 1. Who is... Ans: ...)
+  const qaPattern = /(?:^|\n)\s*(?:Q\d*|Question\s*\d*|\d+[\.\)])\s*[\.:]?\s*(.+?\??)\s*(?:\r?\n)+\s*(?:A\d*|Answer\d*|Ans|Reply)?\s*[\.:\-]?\s*([\s\S]+?)(?=(?:\r?\n)\s*(?:Q\d*|Question\s*\d*|\d+[\.\)])\s*[\.:\-]|\Z)/gi;
+  let match;
+  while ((match = qaPattern.exec(text)) !== null) {
+    const q = match[1].trim();
+    const a = cleanAns(match[2]);
+    if (q.length > 3 && a.length > 3 && !isPromptInstruction(q) && !isPromptInstruction(a) && q.toLowerCase() !== a.toLowerCase()) {
+      if (!items.some((item) => item.question.toLowerCase() === q.toLowerCase())) {
+        items.push({ question: q, answer: a, category: fileName });
+      }
+    }
+  }
+
+  // 3. Simple Q: ... A: ... fallback if regex didn't catch
+  if (items.length === 0) {
+    const qaPairs = text.split(/(?=Q:\s*|Question:\s*)/i);
+    qaPairs.forEach((block) => {
+      const m = block.match(/(?:Q|Question):\s*(.+?)(?:\r?\n)+(?:A|Answer):\s*([\s\S]+)/i);
+      if (m) {
+        const qClean = m[1].trim();
+        const aClean = cleanAns(m[2]);
+        if (qClean && aClean && !isPromptInstruction(qClean) && !isPromptInstruction(aClean) && qClean.toLowerCase() !== aClean.toLowerCase()) {
+          items.push({ question: qClean, answer: aClean, category: fileName });
+        }
+      }
+    });
+  }
+
+  // 4. Fallback: Paragraph / Section Chunks (No document ever gets lost!)
+  if (items.length === 0) {
+    const paragraphs = text.split(/(?:\r?\n\s*){2,}/).filter((p) => p.trim().length > 30);
+    const cleanCategory = (fileName || "Company Knowledge").replace(/\.[^/.]+$/, "").replace(/[_-]/g, " ").trim();
+    paragraphs.forEach((p, idx) => {
+      const lines = p.trim().split(/\r?\n/).filter((l) => l.trim().length > 0);
+      const firstLine = lines[0].replace(/^[#\d\.\-\*]+\s*/, "").trim();
+      const rawBody = lines.slice(1).join("\n").trim() || firstLine;
+      const body = cleanAns(rawBody);
+      if (!isPromptInstruction(firstLine) && !isPromptInstruction(body) && body.length > 10) {
+        items.push({
+          question: firstLine.length > 5 ? firstLine : `${cleanCategory} - Topic ${idx + 1}`,
+          answer: body,
+          category: cleanCategory,
+        });
+      }
+    });
+  }
+
+  return items;
+}
+
+/**
+ * Universal Ingest Router:
+ * Automatically identifies file type and extracts Q&A pairs with 100% format support
  */
 async function parseUploadedFile(fileName, fileType, fileData) {
   const ext = (fileName || "").split(".").pop().toLowerCase();
@@ -69,7 +218,7 @@ async function parseUploadedFile(fileName, fileType, fileData) {
     const XLSX = await import("xlsx");
     const buffer = Buffer.from(fileData, "base64");
     const workbook = XLSX.read(buffer, { type: "buffer" });
-    
+
     workbook.SheetNames.forEach((sheetName) => {
       const sheet = workbook.Sheets[sheetName];
       const rows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
@@ -80,7 +229,6 @@ async function parseUploadedFile(fileName, fileType, fileData) {
         let a = "";
         let cat = sheetName || "Excel Ingest";
 
-        // Heuristic to identify Question and Answer columns
         for (const k of keys) {
           const lk = k.toLowerCase().trim();
           if (lk.includes("question") || lk.includes("query") || lk.includes("prompt") || lk.includes("title") || lk === "q") {
@@ -92,20 +240,21 @@ async function parseUploadedFile(fileName, fileType, fileData) {
           }
         }
 
-        // If no matching header was found, use column 1 as Question and column 2 as Answer
         if (!q && keys.length >= 2) {
           q = String(row[keys[0]]).trim();
           a = String(row[keys[1]]).trim();
         }
 
-        if (q && a && q.length > 2 && a.length > 2) {
+        if (q && a && q.length > 2 && a.length > 2 && !isPromptInstruction(q) && !isPromptInstruction(a)) {
           items.push({ question: q, answer: a, category: cat });
         }
       });
     });
-  } 
-  // 2. CSV files
-  else if (ext === "csv" || fileType?.includes("csv")) {
+    return items;
+  }
+
+  // 2. CSV files (.csv)
+  if (ext === "csv" || fileType?.includes("csv")) {
     const text = Buffer.from(fileData, "base64").toString("utf-8");
     const lines = text.split(/\r?\n/).filter(Boolean);
     if (lines.length > 0) {
@@ -117,14 +266,16 @@ async function parseUploadedFile(fileName, fileType, fileData) {
         const cols = lines[i].split(",").map((c) => c.replace(/^["']|["']$/g, "").trim());
         const q = cols[qIdx >= 0 ? qIdx : 0] || "";
         const a = cols[aIdx >= 0 ? aIdx : 1] || "";
-        if (q && a && q.length > 2 && a.length > 2) {
+        if (q && a && q.length > 2 && a.length > 2 && !isPromptInstruction(q) && !isPromptInstruction(a)) {
           items.push({ question: q, answer: a, category: "CSV Ingest" });
         }
       }
     }
-  } 
-  // 3. JSON files
-  else if (ext === "json" || fileType?.includes("json")) {
+    return items;
+  }
+
+  // 3. JSON files (.json)
+  if (ext === "json" || fileType?.includes("json")) {
     const text = Buffer.from(fileData, "base64").toString("utf-8");
     const parsed = JSON.parse(text);
 
@@ -133,156 +284,38 @@ async function parseUploadedFile(fileName, fileType, fileData) {
         const q = entry.question || entry.q || entry.query || entry.title || "";
         const a = entry.answer || entry.a || entry.response || entry.content || "";
         const cat = entry.category || entry.tag || "JSON Ingest";
-        if (q && a) items.push({ question: String(q).trim(), answer: String(a).trim(), category: String(cat).trim() });
+        if (q && a && !isPromptInstruction(q) && !isPromptInstruction(a)) {
+          items.push({ question: String(q).trim(), answer: String(a).trim(), category: String(cat).trim() });
+        }
       });
     } else if (typeof parsed === "object") {
       Object.entries(parsed).forEach(([key, val]) => {
-        if (typeof val === "string" && key && val) {
+        if (typeof val === "string" && key && val && !isPromptInstruction(key) && !isPromptInstruction(val)) {
           items.push({ question: key.trim(), answer: val.trim(), category: "JSON Ingest" });
         }
       });
     }
-  } 
+    return items;
+  }
+
   // 4. Word Documents (.docx, .doc)
-  else if (ext === "docx" || ext === "doc" || fileType?.includes("wordprocessingml") || fileType?.includes("msword")) {
+  if (ext === "docx" || ext === "doc" || fileType?.includes("wordprocessingml") || fileType?.includes("msword")) {
     const mammoth = await import("mammoth");
     const buffer = Buffer.from(fileData, "base64");
     const docResult = await mammoth.default.extractRawText({ buffer });
-    const text = docResult.value || "";
-
-    // 4.1 Parse Canonical Answer groups (PART C, PART D, etc.)
-    const variationSections = text.split(/(?=\n[A-Z0-9][^\n]+—[^\n]+)/);
-    for (const sec of variationSections) {
-      const canonicalMatch = sec.match(/Canonical answer:\s*([^\n\r]+(?:\n[^\n\r]+)*)/i);
-      if (!canonicalMatch) continue;
-      
-      let rawAnswer = canonicalMatch[1].trim();
-      // Split off and remove any trailing meta-prompts/instructions
-      const metaSplit = rawAnswer.split(/(?:\r?\n)+(?=(?:treat all questions|rule|note|instruction|the chatbot must|intent:))/i);
-      const answer = metaSplit[0].trim();
-
-      if (!answer || isPromptInstruction(answer) || answer.length < 3) continue;
-
-      const beforeCanonical = sec.slice(0, canonicalMatch.index);
-      const lines = beforeCanonical
-        .split(/\r?\n/)
-        .map((l) => l.trim())
-        .filter((l) => l.length > 3 && !l.startsWith("PART ") && !l.startsWith("The chatbot must") && !l.includes("—") && !isPromptInstruction(l));
-
-      for (const q of lines) {
-        if (q.length > 3 && q.toLowerCase() !== answer.toLowerCase() && !isPromptInstruction(q)) {
-          items.push({
-            question: q,
-            answer: answer,
-            category: "Verified Directory & Team",
-          });
-        }
-      }
-    }
-
-    // 4.2 Parse Q1. ... A: ... or Q: ... A: ... (100 FAQs style)
-    const qaPattern = /(?:^|\n)\s*(?:Q\d*|Question\s*\d*)\s*[\.:]\s*(.+?)\s*(?:\r?\n)+\s*(?:A|Answer)\s*[\.:]\s*([\s\S]+?)(?=(?:\r?\n)\s*(?:Q\d*|Question\s*\d*)\s*[\.:]|PART|\Z)/gi;
-    let match;
-    while ((match = qaPattern.exec(text)) !== null) {
-      const q = match[1].trim();
-      let a = match[2].trim();
-      // Split off any prompt instructions
-      const metaSplit = a.split(/(?:\r?\n)+(?=(?:treat all questions|rule|note|instruction|the chatbot must|intent:))/i);
-      a = metaSplit[0].trim();
-
-      if (q && a && q.toLowerCase() !== a.toLowerCase() && !isPromptInstruction(q) && !isPromptInstruction(a)) {
-        items.push({
-          question: q,
-          answer: a,
-          category: fileName || "100 Business FAQs",
-        });
-      }
-    }
-
-    // 4.3 Standard Q/A block fallback if above didn't catch pairs
-    if (items.length === 0) {
-      const qaPairs = text.split(/(?=Q:\s*|Question:\s*)/i);
-      qaPairs.forEach((block) => {
-        const m = block.match(/(?:Q|Question):\s*(.+?)(?:\r?\n)+(?:A|Answer):\s*([\s\S]+)/i);
-        if (m) {
-          const qClean = m[1].trim();
-          let aClean = m[2].trim();
-          const metaSplit = aClean.split(/(?:\r?\n)+(?=(?:treat all questions|rule|note|instruction|the chatbot must|intent:))/i);
-          aClean = metaSplit[0].trim();
-
-          if (qClean && aClean && qClean.toLowerCase() !== aClean.toLowerCase() && !isPromptInstruction(qClean) && !isPromptInstruction(aClean)) {
-            items.push({
-              question: qClean,
-              answer: aClean,
-              category: "Word Document",
-            });
-          }
-        }
-      });
-    }
-
-    // 4.4 Paragraph fallback
-    if (items.length === 0) {
-      const paragraphs = text.split(/(?:\r?\n\s*){2,}/).filter((p) => p.trim().length > 30);
-      paragraphs.forEach((p, idx) => {
-        const lines = p.trim().split(/\r?\n/).filter((l) => l.trim().length > 0);
-        const firstLine = lines[0].replace(/^#+\s*/, "").trim();
-        const body = lines.slice(1).join("\n").trim() || firstLine;
-        if (!isPromptInstruction(firstLine) && !isPromptInstruction(body)) {
-          items.push({
-            question: firstLine.length > 10 ? firstLine : `Information from ${fileName} (Section ${idx + 1})`,
-            answer: body,
-            category: fileName || "Word Document",
-          });
-        }
-      });
-    }
-  }
-  // 5. Text and Markdown (.txt, .md)
-  else {
-    const text = Buffer.from(fileData, "base64").toString("utf-8");
-    // Check if format has "Q: ... A: ..."
-    const qaPairs = text.split(/(?=Q:\s*|Question:\s*)/i);
-    let foundPairs = false;
-
-    qaPairs.forEach((block) => {
-      const match = block.match(/(?:Q|Question):\s*(.+?)(?:\r?\n)+(?:A|Answer):\s*([\s\S]+)/i);
-      if (match) {
-        const qClean = match[1].trim();
-        let aClean = match[2].trim();
-        const metaSplit = aClean.split(/(?:\r?\n)+(?=(?:treat all questions|rule|note|instruction|the chatbot must|intent:))/i);
-        aClean = metaSplit[0].trim();
-
-        if (qClean && aClean && qClean.toLowerCase() !== aClean.toLowerCase() && !isPromptInstruction(qClean) && !isPromptInstruction(aClean)) {
-          foundPairs = true;
-          items.push({
-            question: qClean,
-            answer: aClean,
-            category: "Document Ingest",
-          });
-        }
-      }
-    });
-
-    // If not structured with Q/A, split by paragraphs / headings
-    if (!foundPairs || items.length === 0) {
-      const paragraphs = text.split(/\n\s*\n/).filter((p) => p.trim().length > 30);
-      paragraphs.forEach((p, idx) => {
-        const lines = p.trim().split("\n");
-        const firstLine = lines[0].replace(/^#+\s*/, "").trim();
-        const body = lines.slice(1).join("\n").trim() || firstLine;
-        if (!isPromptInstruction(firstLine) && !isPromptInstruction(body)) {
-          items.push({
-            question: firstLine.length > 10 ? firstLine : `Information about ${fileName} (Section ${idx + 1})`,
-            answer: body,
-            category: fileName || "Text Document",
-          });
-        }
-      });
-    }
+    return parseUniversalText(docResult.value || "", fileName);
   }
 
-  return items;
+  // 5. PDF Documents (.pdf)
+  if (ext === "pdf" || fileType?.includes("pdf")) {
+    const buffer = Buffer.from(fileData, "base64");
+    const text = extractTextFromPdfBuffer(buffer);
+    return parseUniversalText(text, fileName);
+  }
+
+  // 6. Text and Markdown (.txt, .md, and all other text formats)
+  const text = Buffer.from(fileData, "base64").toString("utf-8");
+  return parseUniversalText(text, fileName);
 }
 
 export default async function adminKnowledgeHandler(req, res) {

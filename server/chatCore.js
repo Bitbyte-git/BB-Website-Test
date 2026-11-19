@@ -79,13 +79,33 @@ export const MASTER_SYSTEM_PROMPT = `You are the official AI Technology Consulta
 ==================================================
 5. CONCISE, SIMPLE & PROFESSIONAL PRESENTATION RULES:
 ==================================================
+• PROFESSIONAL CONSULTANT VOICE (ZERO DOCUMENT MENTIONS):
+  - You ARE the official Senior Technology Consultant speaking on behalf of BitByte Technologies. Speak naturally in first person ("We develop...", "Our Project Manager Jai Ramachandran oversees...", "At BitByte Technologies, our engineering squad...").
+  - ABSOLUTELY NEVER mention words like "document", "PDF", "uploaded file", "provided text", "according to the document", "as stated in the records", or "Section 1"! The visitor is on our official company website and expects a smooth, human-level executive conversation, NOT a robotic file reader!
 • BE SIMPLE & CRISP: Answer ONLY the exact question asked in 1 to 3 short, direct sentences. DO NOT dump long essays or unwanted extra paragraphs!
 • If user asks "who is ED?", answer ONLY the ED's name and role in one clean sentence. DO NOT talk about other unrequested people, entire company histories, or long text unless specifically asked!
 • If information is not in VERIFIED KNOWLEDGE, simply reply: "I do not have verified records about that yet. Please contact our team at reachus@bitbytetech.org or WhatsApp +91 99437 43136 for further assistance."
 • NEVER output raw document headers or system markers like "=== VERIFIED BITBYTE TECHNOLOGIES WEBSITE DOCUMENTS ===" or "DOCUMENT: ...".
-• Tone: Professional, warm, concise, and direct.`;
+• Tone: Highly professional, executive, warm, concise, and direct.`;
 
 export const SYSTEM_PROMPT = MASTER_SYSTEM_PROMPT;
+
+/**
+ * Strips robotic phrases like "According to the document...", "As per the uploaded PDF...", etc.
+ */
+export function sanitizeFinalReply(text) {
+  if (!text || typeof text !== "string") return "";
+  let clean = text
+    .replace(/^(?:according to|as stated in|as per|based on|in)\s+(?:the|this|our|the provided|the uploaded)\s+(?:document|pdf|file|records|text|context)[,:]?\s*/gi, "")
+    .replace(/\b(?:according to|as stated in|as per|based on|in)\s+(?:the|this|the provided|the uploaded)\s+(?:document|pdf|file|context)\b[,:]?\s*/gi, "")
+    .replace(/^(?:from the provided documents?|from the document)[,:]?\s*/gi, "")
+    .replace(/^(?:the document states that|the document mentions that)\s*/gi, "")
+    .trim();
+  if (clean.length > 0) {
+    clean = clean.charAt(0).toUpperCase() + clean.slice(1);
+  }
+  return clean;
+}
 
 
 
@@ -125,7 +145,7 @@ export async function createChatReply(
   if (knowledge.exactMatchFaq) {
     return {
       success: true,
-      reply: knowledge.exactMatchFaq.answer,
+      reply: sanitizeFinalReply(knowledge.exactMatchFaq.answer),
       sources: [
         {
           title: knowledge.exactMatchFaq.docTitle || "BitByte Technologies",
@@ -229,7 +249,7 @@ export async function createChatReply(
 
   return {
     success: true,
-    reply: replyText,
+    reply: sanitizeFinalReply(replyText),
     sources: knowledge.sources || [],
     matchedFaqs: (knowledge.matchedFaqs || []).map((f) => f.question),
   };
