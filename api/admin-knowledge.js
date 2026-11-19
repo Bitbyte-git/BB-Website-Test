@@ -7,6 +7,7 @@ import {
   bulkPersistLearnedQAToMongo,
   deleteLearnedQAFromMongo,
   getLearnedQAFromMongo,
+  isPromptInstruction,
   loadLearnedQAFromMongo,
   persistLearnedQAToMongo,
 } from "../services/liveKnowledge.js";
@@ -154,16 +155,22 @@ async function parseUploadedFile(fileName, fileType, fileData) {
     for (const sec of variationSections) {
       const canonicalMatch = sec.match(/Canonical answer:\s*([^\n\r]+(?:\n[^\n\r]+)*)/i);
       if (!canonicalMatch) continue;
-      const answer = canonicalMatch[1].trim();
+      
+      let rawAnswer = canonicalMatch[1].trim();
+      // Split off and remove any trailing meta-prompts/instructions
+      const metaSplit = rawAnswer.split(/(?:\r?\n)+(?=(?:treat all questions|rule|note|instruction|the chatbot must|intent:))/i);
+      const answer = metaSplit[0].trim();
+
+      if (!answer || isPromptInstruction(answer) || answer.length < 3) continue;
 
       const beforeCanonical = sec.slice(0, canonicalMatch.index);
       const lines = beforeCanonical
         .split(/\r?\n/)
         .map((l) => l.trim())
-        .filter((l) => l.length > 3 && !l.startsWith("PART ") && !l.startsWith("The chatbot must") && !l.includes("—"));
+        .filter((l) => l.length > 3 && !l.startsWith("PART ") && !l.startsWith("The chatbot must") && !l.includes("—") && !isPromptInstruction(l));
 
       for (const q of lines) {
-        if (q.length > 3 && q.toLowerCase() !== answer.toLowerCase()) {
+        if (q.length > 3 && q.toLowerCase() !== answer.toLowerCase() && !isPromptInstruction(q)) {
           items.push({
             question: q,
             answer: answer,
@@ -178,8 +185,12 @@ async function parseUploadedFile(fileName, fileType, fileData) {
     let match;
     while ((match = qaPattern.exec(text)) !== null) {
       const q = match[1].trim();
-      const a = match[2].trim();
-      if (q && a && q.toLowerCase() !== a.toLowerCase()) {
+      let a = match[2].trim();
+      // Split off any prompt instructions
+      const metaSplit = a.split(/(?:\r?\n)+(?=(?:treat all questions|rule|note|instruction|the chatbot must|intent:))/i);
+      a = metaSplit[0].trim();
+
+      if (q && a && q.toLowerCase() !== a.toLowerCase() && !isPromptInstruction(q) && !isPromptInstruction(a)) {
         items.push({
           question: q,
           answer: a,
@@ -195,8 +206,11 @@ async function parseUploadedFile(fileName, fileType, fileData) {
         const m = block.match(/(?:Q|Question):\s*(.+?)(?:\r?\n)+(?:A|Answer):\s*([\s\S]+)/i);
         if (m) {
           const qClean = m[1].trim();
-          const aClean = m[2].trim();
-          if (qClean && aClean && qClean.toLowerCase() !== aClean.toLowerCase()) {
+          let aClean = m[2].trim();
+          const metaSplit = aClean.split(/(?:\r?\n)+(?=(?:treat all questions|rule|note|instruction|the chatbot must|intent:))/i);
+          aClean = metaSplit[0].trim();
+
+          if (qClean && aClean && qClean.toLowerCase() !== aClean.toLowerCase() && !isPromptInstruction(qClean) && !isPromptInstruction(aClean)) {
             items.push({
               question: qClean,
               answer: aClean,
@@ -214,11 +228,13 @@ async function parseUploadedFile(fileName, fileType, fileData) {
         const lines = p.trim().split(/\r?\n/).filter((l) => l.trim().length > 0);
         const firstLine = lines[0].replace(/^#+\s*/, "").trim();
         const body = lines.slice(1).join("\n").trim() || firstLine;
-        items.push({
-          question: firstLine.length > 10 ? firstLine : `Information from ${fileName} (Section ${idx + 1})`,
-          answer: body,
-          category: fileName || "Word Document",
-        });
+        if (!isPromptInstruction(firstLine) && !isPromptInstruction(body)) {
+          items.push({
+            question: firstLine.length > 10 ? firstLine : `Information from ${fileName} (Section ${idx + 1})`,
+            answer: body,
+            category: fileName || "Word Document",
+          });
+        }
       });
     }
   }
@@ -233,8 +249,11 @@ async function parseUploadedFile(fileName, fileType, fileData) {
       const match = block.match(/(?:Q|Question):\s*(.+?)(?:\r?\n)+(?:A|Answer):\s*([\s\S]+)/i);
       if (match) {
         const qClean = match[1].trim();
-        const aClean = match[2].trim();
-        if (qClean && aClean && qClean.toLowerCase() !== aClean.toLowerCase()) {
+        let aClean = match[2].trim();
+        const metaSplit = aClean.split(/(?:\r?\n)+(?=(?:treat all questions|rule|note|instruction|the chatbot must|intent:))/i);
+        aClean = metaSplit[0].trim();
+
+        if (qClean && aClean && qClean.toLowerCase() !== aClean.toLowerCase() && !isPromptInstruction(qClean) && !isPromptInstruction(aClean)) {
           foundPairs = true;
           items.push({
             question: qClean,
@@ -252,11 +271,13 @@ async function parseUploadedFile(fileName, fileType, fileData) {
         const lines = p.trim().split("\n");
         const firstLine = lines[0].replace(/^#+\s*/, "").trim();
         const body = lines.slice(1).join("\n").trim() || firstLine;
-        items.push({
-          question: firstLine.length > 10 ? firstLine : `Information about ${fileName} (Section ${idx + 1})`,
-          answer: body,
-          category: fileName || "Text Document",
-        });
+        if (!isPromptInstruction(firstLine) && !isPromptInstruction(body)) {
+          items.push({
+            question: firstLine.length > 10 ? firstLine : `Information about ${fileName} (Section ${idx + 1})`,
+            answer: body,
+            category: fileName || "Text Document",
+          });
+        }
       });
     }
   }

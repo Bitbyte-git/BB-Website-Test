@@ -181,16 +181,17 @@ BitByte Technologies Official Executive Leadership & Employee Roster:
   - CEO (Chief Executive Officer): Sri Priyadharshini
   - ED (Executive Director): Agilan
   - MD (Managing Director): Beemarao
+  - PM (Project Manager): Jai Ramachandran
 • Total Team Members / Employees: 7
   - Senthil (Development Team)
   - Roshini (Development Team)
   - Selva (Development Team)
   - Aarthi (Development Team)
-  - Jai
+  - Jai Ramachandran (Project Manager)
   - Mano
   - Naveen
 `,
-    tags: ["ceo", "md", "ed", "director", "managing director", "executive director", "leader", "leadership", "founder", "employees", "team", "staff", "sri priyadharshini", "agilan", "beemarao", "senthil", "roshini", "selva", "aarthi", "jai", "mano", "naveen"],
+    tags: ["ceo", "md", "ed", "pm", "project manager", "director", "managing director", "executive director", "leader", "leadership", "founder", "employees", "team", "staff", "sri priyadharshini", "agilan", "beemarao", "jai", "jai ramachandran", "senthil", "roshini", "selva", "aarthi", "mano", "naveen"],
   },
 
   // 3. Official Contact & Consultation
@@ -579,6 +580,14 @@ export const FAQS = [
     tokens: ["ed", "executive director", "ed ?", "who is ed", "bitbyte ed", "agilan", "ed name", "ed yaaru", "ed yaaru bro"],
   },
   {
+    question: "Who is the PM of BitByte Technologies?",
+    answer:
+      "The PM (Project Manager) of BitByte Technologies is Jai Ramachandran. He oversees technical project execution, sprint deliverables, and engineering team workflows.",
+    docTitle: "Official Leadership Directory",
+    url: "/about",
+    tokens: ["pm", "project manager", "pm ?", "who is pm", "who is the pm", "who is project manager", "bitbyte pm", "jai", "jai ramachandran", "pm name", "pm yaaru", "pm yaaru bro"],
+  },
+  {
     question: "How many employees work at BitByte Technologies?",
     answer:
       "BitByte Technologies has 7 team members: Senthil, Roshini, Selva, Aarthi, Jai, Mano, and Naveen, led by CEO Sri Priyadharshini, ED Agilan, and MD Beemarao.",
@@ -801,6 +810,27 @@ function tokenize(text) {
   return tokens;
 }
 
+export function isPromptInstruction(text) {
+  if (!text || typeof text !== "string") return false;
+  const lower = text.toLowerCase();
+  return (
+    lower.includes("treat all questions") ||
+    lower.includes("canonical answer above") ||
+    lower.includes("match by meaning") ||
+    lower.includes("do not invent") ||
+    lower.includes("same intent:") ||
+    lower.includes("for every matching question") ||
+    lower.includes("the chatbot must") ||
+    lower.includes("project_manager_identity") ||
+    /intent\s*:\s*[A-Z_]+/i.test(text) ||
+    lower.startsWith("prompt:") ||
+    lower.startsWith("instruction:") ||
+    lower.startsWith("system:") ||
+    lower.startsWith("rule:") ||
+    lower.includes("return the canonical answer")
+  );
+}
+
 // Dynamic In-Memory Learned Q&A Store
 export const DYNAMIC_LEARNED_FAQS = [];
 
@@ -819,6 +849,18 @@ export async function loadLearnedQAFromMongo(forceReload = false) {
     });
     await client.connect();
     const db = client.db(process.env.MONGODB_DB_NAME || "BB-Careers-Application");
+    
+    // Auto-clean any contaminated prompt instructions from DB
+    await db.collection("chatbot_learned_qa").deleteMany({
+      $or: [
+        { answer: /Treat all questions/i },
+        { answer: /PROJECT_MANAGER_IDENTITY/i },
+        { answer: /canonical answer above/i },
+        { question: /Treat all questions/i },
+        { question: /PROJECT_MANAGER_IDENTITY/i },
+      ],
+    }).catch(() => {});
+
     const docs = await db.collection("chatbot_learned_qa").find({ verified: { $ne: false } }).sort({ learnedAt: -1 }).limit(500).toArray();
     
     if (forceReload) {
@@ -827,6 +869,9 @@ export async function loadLearnedQAFromMongo(forceReload = false) {
     
     for (const doc of docs) {
       if (doc.question && doc.answer) {
+        if (isPromptInstruction(doc.answer) || isPromptInstruction(doc.question)) {
+          continue; // Automatically skip contaminated prompt rules!
+        }
         DYNAMIC_LEARNED_FAQS.push({
           id: doc._id?.toString() || "",
           question: doc.question,
@@ -911,24 +956,27 @@ export async function bulkPersistLearnedQAToMongo(items) {
     const db = client.db(process.env.MONGODB_DB_NAME || "BB-Careers-Application");
     const collection = db.collection("chatbot_learned_qa");
     
-    let count = 0;
+    const ops = [];
     for (const item of items) {
       if (!item.question || !item.answer) continue;
       const tokens = item.tokens || tokenize(item.question);
-      await collection.updateOne(
-        { question: item.question },
-        {
-          $set: {
-            question: item.question,
-            answer: item.answer,
-            category: item.category || "Uploaded Knowledge",
-            tokens,
-            learnedAt: new Date(),
-            verified: true,
+      ops.push({
+        updateOne: {
+          filter: { question: item.question },
+          update: {
+            $set: {
+              question: item.question,
+              answer: item.answer,
+              category: item.category || "Uploaded Knowledge",
+              tokens,
+              learnedAt: new Date(),
+              verified: true,
+            },
           },
+          upsert: true,
         },
-        { upsert: true }
-      );
+      });
+
       // In-memory update
       const existingIdx = DYNAMIC_LEARNED_FAQS.findIndex(
         (f) => f.question.toLowerCase() === item.question.toLowerCase()
@@ -946,7 +994,11 @@ export async function bulkPersistLearnedQAToMongo(items) {
       } else {
         DYNAMIC_LEARNED_FAQS.unshift(learnedEntry);
       }
-      count++;
+    }
+
+    let count = ops.length;
+    if (ops.length > 0) {
+      await collection.bulkWrite(ops, { ordered: false });
     }
     await client.close();
     return count;
@@ -1185,12 +1237,19 @@ export function findRelevantKnowledge(query) {
     const isCeoQuery = /\b(ceo|chief\s*executive\s*officer|priyadharshini)\b/i.test(queryLower);
     const isEdQuery = /\b(ed|executive\s*director|agilan)\b/i.test(queryLower);
     const isMdQuery = /\b(md|managing\s*director|beemarao)\b/i.test(queryLower);
-    const isTeamQuery = /\b(team|members|employees|staff|developers|headcount|roster)\b/i.test(queryLower) && !isCeoQuery && !isEdQuery && !isMdQuery;
+    const isPmQuery = /\b(pm|project\s*manager|jai\s*ramachandran)\b/i.test(queryLower);
+    const isTeamQuery = /\b(team|members|employees|staff|developers|headcount|roster)\b/i.test(queryLower) && !isCeoQuery && !isEdQuery && !isMdQuery && !isPmQuery;
 
     if (isCeoQuery && faq.tokens.some((t) => t.toLowerCase().includes("ceo"))) score += 300;
     if (isEdQuery && faq.tokens.some((t) => t.toLowerCase().includes("ed"))) score += 300;
     if (isMdQuery && faq.tokens.some((t) => t.toLowerCase().includes("md"))) score += 300;
+    if (isPmQuery && faq.tokens.some((t) => t.toLowerCase().includes("pm"))) score += 300;
     if (isTeamQuery && (faq.tokens.includes("employees") || faq.tokens.includes("team members") || faq.tokens.includes("developers"))) score += 300;
+
+    // Never allow contaminated prompt instructions to match!
+    if (isPromptInstruction(faq.answer) || isPromptInstruction(faq.question)) {
+      score -= 9999;
+    }
 
     if (isContactIntent && faq.docTitle.includes("Contact")) score += 100;
     if (isCareerIntent && faq.docTitle.includes("Career")) score += 100;
